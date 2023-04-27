@@ -7,21 +7,13 @@ from .forms import QuoteForm, AuthorForm, TagForm
 
 
 def main(request):
-    # db = get_mongodb()
-    # quotes = db.quotes.find()
     quotes = Quote.objects.all()
     per_page = 10
     paginator = Paginator(list(quotes), per_page)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
-    top_tags = Quote.objects.values('tags__name') \
-                   .annotate(quote_count=Count('tags__name')) \
-                   .order_by('-quote_count')[:10]
-    tag_name = []
-    for tag in top_tags:
-        tag_name.append(tag['tags__name'])
-    return render(request, "quotes/index.html", context={'quotes': page_obj, "top_ten_tags": tag_name})
+    return render(request, "quotes/index.html", context={'quotes': page_obj})
 
 
 def author_about(request, _id):
@@ -80,6 +72,6 @@ def find_by_tag(request, _id):
     for tag in top_tags:
         tag_name.append(tag['tags__name'])
 
-    return render(request, "quotes/index.html", context={'quotes': page_obj,
-                                                         "top_ten_tags": tag_name})
+    return render(request, "quotes/index.html", context={'quotes': page_obj, "top_ten_tags": tag_name})
+
 
