@@ -5,15 +5,24 @@ from .models import Author, Quote, Tag
 from .utils import get_mongodb
 from .forms import QuoteForm, AuthorForm, TagForm
 
+raw_sql_query_top_tags = """
+SELECT quotes_tag.id as id, quotes_tag.name
+FROM quotes_quote_tags
+join quotes_tag on quotes_tag.id = quotes_quote_tags.tag_id 
+group by quotes_tag.name, quotes_tag.id
+order by count(quotes_quote_tags.tag_id) desc, quotes_tag.name
+limit 10
+"""
 
-def main(request):
+top_tags = Tag.objects.raw(raw_sql_query_top_tags)
+
+
+def main(request, page=1):
     quotes = Quote.objects.all()
     per_page = 10
     paginator = Paginator(list(quotes), per_page)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-
-    return render(request, "quotes/index.html", context={'quotes': page_obj})
+    quotes_on_page = paginator.page(page)
+    return render(request, 'quotes/index.html', context={'quotes': quotes_on_page})
 
 
 def author_about(request, _id):
@@ -65,13 +74,8 @@ def find_by_tag(request, _id):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
-    top_tags = Quote.objects.values('tags__name') \
-                   .annotate(quote_count=Count('tags__name')) \
-                   .order_by('-quote_count')[:10]
-    tag_name = []
+    top_tags = Tag.objects.raw(raw_sql_query_top_tags)
     for tag in top_tags:
-        tag_name.append(tag['tags__name'])
+        print(tag.id, tag.name)
 
-    return render(request, "quotes/index.html", context={'quotes': page_obj, "top_ten_tags": tag_name})
-
-
+    return render(request, "quotes/index.html", context={'quotes': page_obj, 'top_tags': top_tags})
